@@ -1,0 +1,4 @@
+(null? (quote ()))
+(car (quote (1 2 3 4)))
+(cdr (quote (1 2 3 4)))
+(+ 1 2 3)

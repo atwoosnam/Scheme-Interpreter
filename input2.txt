@@ -1,0 +1,29 @@
+;(lambda () 6)
+
+;((lambda (x) 6) 2)
+
+;(lambda() 3)
+
+;((lambda (a b) a))
+
+;(define x
+;	(lambda (a b) a))
+
+
+(define x
+	(lambda (b)
+		(lambda (a) b)))
+
+;((x 1) 2)
+
+(define not
+  (lambda (bool)
+    (if bool #f #t)))
+    
+(define testit
+  (lambda (cond conseq alt)
+    (let ((nconseq (not conseq)) (nalt (not alt)))
+      (if cond nconseq nalt))))
+
+(testit #t #f #t)
+(testit #f #f #t)

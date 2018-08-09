@@ -1,0 +1,413 @@
+
+<!-- saved from url=(0071)https://www.cs.carleton.edu/faculty/dmusican/cs251s17/interp5iflet.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="./Part 5 Interpreter, if_let_files/coursepage.css" title="Blue Haze stylesheet">
+    <link rel="stylesheet" type="text/css" href="./Part 5 Interpreter, if_let_files/color-scheme.css" title="Blue Haze stylesheet">
+    <title>CS 251: Interpreter, if/let</title>
+  <link href="./Part 5 Interpreter, if_let_files/css" rel="stylesheet"></head><span id="warning-container"><i data-reactroot=""></i></span>
+
+  <body>
+
+    <div id="bodyText">
+
+    <h2>CS 251: Interpreter, if/let</h2>
+
+
+    <p>It's time to start actually implementing the interpreter portion of the
+    project!</p>
+
+    <h3>Getting started</h3>
+    <p>Check out your blank repository (called "interpreter" this time, with
+    your team name attached to it), and then download <a href="https://www.cs.carleton.edu/faculty/dmusican/cs251s17/iflet.zip"> this
+    zip file</a>. Add the files to your repository as usual. As in the past, you
+    have a choice regarding linkedlist.c, talloc.c, tokenizer.c, and
+    parser.c. If you want to continue to build your own interpreter that is
+    truly yours, you can copy in these files from the last project, and move
+    forward. Alternatively, if you would prefer to use my versions instead, you
+    can do so. In the <kbd>lib</kbd> directory you'll see a variety of <kbd>.o</kbd>
+    files, which are compiled binary versions of my
+      <kbd>.c</kbd> files. If you would prefer to use one or many of these in your
+      project instead of your own, you can replace them in the
+      Makefile. Specifically, in the Makefile, on the line starting
+      with <kbd>SRCS</kbd>, you can replace <kbd>talloc.c</kbd>
+      with <kbd>lib/talloc.o</kbd>, etc. I suspect you are likely best off taking
+      all of the files together, as opposed to mixing and matching yours with
+      mine, but you may try if you like.</p>
+      
+    <p>Note that compiled binaries are operating system specific (sometimes version
+      specific). I have compiled these .o files to work with the course virtual
+      machine.</p>
+
+    <p>While you are welcome to use these binaries that I provide if you wish,
+        a very small portion of the grade for the assignment will be reserved for
+        those who manage to make this work entirely with their own code. So as not
+        to penalize people repeatedly for the same issue, we'll be only
+        considering new binaries added for each assignment. I currently have the
+        assignment worth a total of 12 points; half of one point is reserved for
+        those who use their own code without including my <kbd>parser.o</kbd>
+        binary.</p>
+
+    <p>The key missing file is <kbd>interpeter.c</kbd>, which you will need to create.</p>
+
+    <p>To compile your code, issue the command "make" at the command prompt. (This
+      will give an error if you haven't yet created the .c files you need, or have
+      changed the Makefile to refer to the necessary .o files.)</p>
+
+    <p>To run your code, first create a file with some Scheme code in it, and give
+      it a filename (e.g., <kbd>input.txt</kbd>). Then issue this command at a
+      prompt:</p>
+
+    <pre>      ./interpreter &lt; input.txt
+    </pre>
+
+    <p>Your code should read data from standard input. In that case, the
+    above command will redirect the text in the input.txt file into your
+    program.</p>
+
+    <p>To run your code through valgrind, I have provided a shell script to set
+    all the appropriate options. You can do it this way:</p>
+
+   <pre>      ./valgrind.sh  &lt; input.txt
+   </pre>
+
+
+   <h3>Functionality</h3>
+
+
+   <p>For this phase of the project, you must support the correct evaluation of
+      the following types of Scheme expressions:</p>
+
+    <ol>
+
+      <li><p>Boolean, integer, real, and string literals. (They
+        evaluate to themselves.)</p></li>
+
+      <li><p><kbd>(if test trueExpr falseExpr)</kbd></p>
+
+        <p>You may assume that <kbd>test</kbd> evaluates to a boolean.</p>
+
+      </li>
+
+<!--      <li><p><kbd>(quote expr)</kbd></p>
+
+      <p>This is equivalent to <kbd>'expr</kbd>, but you only need
+        to be able to handle the version with <kbd>quote</kbd>.</p>
+
+      <p>Note that when you print a quoted symbol or
+        list, you should include the quote sign at the beginning
+        of the quote, but not on any symbols inside a quoted
+        list:</p>
+
+<pre>
+$ cat test1
+(quote a)
+(quote (a b c))
+$ cat test1 | ./interpreter
+'a
+'(a b c)
+</pre>
+
+      </li>-->
+
+      <li><kbd>(let list-of-bindings body)</kbd>.
+
+        <p>You will need to implement the creation of new
+          frames. Much more on this in a bit.</p>
+
+      </li>
+
+      <li>Variables. Now that you've implemented <kbd>let</kbd> and
+        frames, you should be able to evaluate a bound
+        symbol.</li>
+
+    </ol>
+
+    <p>When you're done with this part of the project, you should
+      be able to evaluate very simple programs like this:</p>
+
+<pre>(let ((x #t)) (if x 3 5))
+</pre>
+
+    <p>This should evaluate to 3. Your programs won't yet be
+      able to handle functions; that's coming later.</p>
+
+    <h2>Core functionality</h2>
+
+    <p>At the core of your interpreter, you will need to
+      implement a function to evaluate Scheme code:</p>
+
+<pre>Value *eval(Value *tree, Frame *frame) { ... }
+</pre>
+
+    <p>Given an expression tree and a frame in which to evaluate that
+      expression, <kbd>eval</kbd> returns the value of the expression. I'll
+      explain the "frame" in a moment. Here's a skeleton of
+      my <kbd>eval</kbd> function, to give you an idea of where to start:</p>
+
+<pre>Value *eval(Value *tree, Frame *frame) {
+   switch (tree-&gt;type)  {
+     case INT_TYPE: {
+        ...
+        break;
+     }
+     case ......: {
+        ...
+        break;
+     }  
+     case SYMBOL_TYPE: {
+        return lookUpSymbol(tree, frame);
+        break;
+     }  
+     case CONS_TYPE: {
+        Value *first = car(tree);
+        Value *args = cdr(tree);
+
+        // Sanity and error checking on first...
+
+        if (!strcmp(first-&gt;s,"if")) {
+            result = evalIf(args,frame);
+        }
+
+        // .. other special forms here...
+
+        else {
+           // not a recognized special form
+           evalationError();
+        }
+        break;
+     }
+
+      ....
+    }    
+    ....
+}
+</pre>
+
+    <h2>Frames, and bindings</h2>
+
+    <p>We will be discussing this in class, but here is a brief
+      overview of how to evaluate Scheme code.</p>
+
+    <p>The <kbd>eval</kbd> function mentioned above takes a pointer
+      to a "frame"; what is a frame? A frame is a collection of
+      bindings. OK, what's a binding? A binding is a mapping from
+      a variable name (i.e. a symbol) to a value. Frames are
+      created whenever we introduce new variable names. For
+      example, in the program</p>
+
+<pre>(let ((x 5) (y "hello")) (if #t x y))</pre>
+
+    <p>the bindings for <kbd>x</kbd> and <kbd>y</kbd> are stored in a
+      single frame. You will have to construct a frame whenever
+      <kbd>eval</kbd> encounters a <kbd>let</kbd>. This frame should
+      be passed in when
+      calling <kbd>eval</kbd> on the body of the let
+      expression. The frame is used to <i>resolve</i> (find
+      the value of) each variable encountered during
+      evaluation. When <kbd>eval</kbd> tries to
+      evaluate <kbd>x</kbd>, it looks in the current <i>frame</i>
+      to find a value for <kbd>x</kbd>.</p>
+
+    <p>There's one other crucial detail here: frames can be
+      chained together to create a larger environment consisting
+      of multiple frames. For example, in the program</p>
+
+<pre>(let ((x "hello")) (let ((y "goodbye")) (if #t x y)))</pre>
+
+    <p>each of the two let expressions creates a separate
+      frame. When <kbd>eval</kbd> evaluates <kbd>x</kbd>, it first
+      checks the innermost let's frame; since that frame only
+      contains a binding for <kbd>y</kbd>, it then checks the outer
+      let's frame, where it finds a binding for <kbd>x</kbd> with
+      value <kbd>"hello"</kbd>.</p>
+
+    <p>To summarize, evaluating a let expression of the form:</p>
+
+<pre>(let ((var1 expr1) (var2 expr2) ... (varn exprn)) body)
+</pre>
+
+    <p>consists of the following steps:</p>
+
+    <ol>
+
+      <li>Let <kbd>e</kbd> be a pointer to the current frame. Create a new
+        frame <kbd>f</kbd> whose parent frame is <kbd>e</kbd>.</li>
+
+      <li>For i = 1 through n:
+
+        <ol>
+
+          <li>Let <kbd>vali</kbd> be the result of
+            evaluating <kbd>expri</kbd> in
+            frame <kbd>e</kbd>.</li>
+            
+          <li>Add a binding from <kbd>vari</kbd> to <kbd>vali</kbd>
+            to <kbd>f</kbd>.</li>
+
+        </ol>
+
+      </li>
+
+      <li>Evaluate <kbd>body</kbd> using frame <kbd>f</kbd> and
+        return the result.</li>
+
+    </ol>
+
+    <p>You will need to implement data structures for frames and bindings. The
+      easiest approach is to use linked lists. The linked list of frames
+      essentially forms a stack: you push on a new frame just before evaluating
+      the body of the let expression, and pop the frame off before returning
+      (although the "pop" really happens automatically when you return
+      from <kbd>eval</kbd>). Within each frame you should store a list of
+      variable/value pairs (i.e. bindings), using anotherr linked list. When you
+      need to resolve a variable, check the current frame first, then its parent
+      if that variable is not in the current frame, then its parent, and so on
+      until you reach a frame with no parent.</p>
+
+    <h2>Evaluation errors</h2>
+    
+    <p>There are going to be many cases in which evaluation is
+      not possible. For example:</p>
+
+    <ul>
+      <li>When an if expression has fewer than 3 arguments</li>
+      <li>When the condition of an if expression evaluates to
+        something other than a boolean</li>
+      <li>When the <kbd>list-of-bindings</kbd> for let does not
+        contain a nested list</li>
+      <li>When you encounter a variable that is not bound in the
+        current frame or any of its ancestors</li>
+      <li>etc...</li>
+    </ul>
+
+    <p>In each of these cases you may immediately quit, printing
+      "evaluation error". Make sure to clean up memory on your
+      way out; use <kbd>texit</kbd> for this.</p>
+
+    <p>It may help you to print error messages explaining where
+      evaluation went wrong. You may include such messages after
+      "evaluation error", if you wish.</p>
+
+    <h2>Multiple S-expressions</h2>
+
+    <p>As discussed in the parser assignment, a Scheme program is a list of
+    S-expressions. You should call <kbd>eval</kbd> on each S-expression. This is
+    what the function <kbd>interpret</kbd>, that you need to write, should do: it
+    is a thin wrapper that calls <kbd>eval</kbd> for each top-level S-expression
+    in the program. You should print out any necessary results before moving on
+    to the next S-expression.</p>
+
+    <h2>Sample output</h2>
+
+<pre>$ cat test1
+3
+5
+(if #f 7 12)
+$ ./interpreter &lt; test1
+3
+5
+12
+
+$ cat test2
+(let ((x 5)) x)
+(if #t x y)
+$ ./interpreter &lt; test2
+5
+evaluation error
+
+$ cat test3
+(let ((foo "hello")
+      (bar 7)
+      (baz #f))
+  (if baz foo bar))
+$ ./interpreter &lt; test3
+7
+</pre>
+
+
+    <h3>Memory errors</h3>
+
+    <p>Your code should have no memory leaks or memory errors when run on any
+      input (correct or incorrect) using <kbd>valgrind</kbd>. We will be checking
+      this during grading.</p>
+
+
+<h3>What to submit</h3>
+<p>Push all of your code into your git repository. Your submitted files should
+be exactly what you checked out, but also with a file named interpeter.c. Your
+Makefile may have changed if you modified it to work with my binaries. If you
+did this, add a readme.txt file explaining what you did.</p>
+
+<p>For the rest of the interpreter project, the work that you do will be
+cumulative. Starting over with a new repository every time will get fairly
+cumbersome. Therefore, you will to continue to push your work for the rest of
+the project using this same repository. We need to know which commit is intended
+for which submission, so starting with this assignment you should <i>tag</i>
+your submissions. After you have committed your final change for this particular
+assignment, enter the following commands (if you are working at the command-line):</p>
+
+<pre>      git commit -am "Going to add a tag for this particular commit"
+      git push
+      git tag if-let
+      git push --tags
+</pre>
+
+<p>Make sure to include both of those <kbd>push commands</kbd>.</p>
+
+<p>On the other hand, if you are using Elegit, the first two steps (committing and pushing) are the same as they have been for previous assignments. To tag (the third step), click on the commit you wish to tag (your most recent). After you have clicked on the commit, you should see a box in the bottom right of the Elegit window where you can enter the tag name. Type in <kbd>if-let</kbd>, then click the <kbd>Tag</kbd> button. After you have done this, click the <kbd>Push tags</kbd> button.</p>
+
+<p>Look at GitHub after the push, and in the commit history you should
+be able to see the tags appear.</p>
+
+<p>You should wait to tag until you're sure you have committed the version you
+want us to grade. That said, in the unlikely event that you goof and realize
+that you want to commit a newer version for us to grade, you'll need to use
+another tag. Reusing the same tag for a different commit is generally a really
+bad idea. If you need to tag another commit, append a ".1" (or whatever version
+number you're up go. For example:</p>
+
+<pre>      git commit -am "Oops: grade this one, I really mean it"
+      git push
+      git tag if-let.1
+      git push --tags
+</pre>    
+
+
+<p>You should also include in your submission a collection of at least 4 pairs
+of test files. (More is better!) Each pair of files
+should be named interpreter-test.input.XX and interpreter-test.output.XX, where XX
+is a test number. It should be the case that if I run the following command then
+I get no output:</p>
+
+<pre class="boxed">./interpreter &lt; interpreter-test.input.XX | diff interpreter-test.output.XX -
+</pre>
+
+<p>When we test your code for grading purposes, we will use our own set of test
+files which we will run using exactly the same command as described above. Test
+carefully.</p>
+
+<p>Your code should have no memory leaks or memory errors when run on any input
+  (correct or incorrect) using <kbd>valgrind</kbd>. We will be checking this as
+  well during grading.</p>
+
+<p>Remember, you can test your code in <kbd>valgrind</kbd> this way:</p>
+
+<pre class="boxed">./valgrind.sh &lt; interpreter-test.input.XX
+</pre>
+
+
+<p>Have fun interpreting!</p>
+
+
+    <hr>
+
+    <p><i>This assignment was originally created by David
+        Liben-Nowell and has since been updated by Dave Musicant
+        and Laura Effinger-Dean.</i></p>
+      </div>
+  
+
+
+
+
+</body></html>

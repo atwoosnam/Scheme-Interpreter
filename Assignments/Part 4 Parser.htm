@@ -1,0 +1,318 @@
+
+<!-- saved from url=(0073)https://www.cs.carleton.edu/faculty/dmusicant/cs251s17/interp4parser.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="./Part 4 Parser_files/coursepage.css" title="Blue Haze stylesheet">
+    <link rel="stylesheet" type="text/css" href="./Part 4 Parser_files/color-scheme.css" title="Blue Haze stylesheet">
+  <link rel="shortcut icon" type="image/x-icon" href="https://www.cs.carleton.edu/faculty/dmusicant/cs251s17/favicon.ico">
+    <title>CS 251: Parser</title>
+  <link href="./Part 4 Parser_files/css" rel="stylesheet"></head><span id="warning-container"><i data-reactroot=""></i></span>
+
+  <body>
+
+    <div id="bodyText">
+
+    <h1>CS 251: Parser</h1>
+
+    <p>This is an <i>individual</i> assignment. Since the whole interpreter
+    project is otherwise done in teams, I do want to ensure that you can do a
+    piece of it on your own. This does build on previous code that you have
+    written as a team. You are welcome to use that team code that you have
+    written, or you can alternatively use the binaries below that I have
+    provided. Likewise, when you move on to the next project (which will be
+    team-based again), you may choose the solution that one of you has written,
+    or you may use a binary solution that I will provide.</p>
+
+    <p>Implement a parser for Scheme, in C.  (You must implement the
+      parser from scratch - don't use Yacc or Bison or any similar tool, even if
+      you know what it is and how to use it.)</p>
+
+    <h3>Getting started</h3>
+    <p>After you check out your blank repository,
+      download <a href="https://www.cs.carleton.edu/faculty/dmusicant/cs251s17/parser.zip">this zip file</a> and add the Makefile and
+      the .h and .c files to your git project. The files you get
+      include:</p>
+      <ul>
+        <li>linkedlist.h: no changes from last time</li>
+        <li>talloc.h: no changes from last time</li>
+        <li>value.h: no changes from last time</li>
+        <li>tokenizer.h: no changes from last time</li>
+        <li>parser.h: The header file for the functions you'll need to write for
+          this assignment. You'll also create a number of helper functions for
+          that, but those don't need to appear in the header since they will be
+          "private".</li>
+        <li>main.c: Short main function that drives the whole program.</li>
+      </ul>
+      
+    <p>At this point, you have a choice regarding how to proceed linkedlist.c,
+      talloc.c, and tokenizer.c. If you want to continue to build your own
+      interpreter that is truly yours, you can copy in these files from the last
+      project, and move forward. Alternatively, if you would prefer to use my
+      versions instead, you can do so. In the <kbd>lib</kbd> directory you'll
+      see <kbd>linkedlist.o</kbd>, <kbd>talloc.o</kbd>, and <kbd>tokenizer.o</kbd>
+      files. These are compiled binary versions of my linkedlist.c and
+      talloc.c. If you would prefer to use one or many of these in your project
+      instead of your own, you can replace them in the Makefile. Specifically,
+      in the Makefile, on the line starting with <kbd>SRCS</kbd>, you can
+      replace <kbd>talloc.c</kbd> with <kbd>lib/talloc.o</kbd>, etc. I suspect you
+      are likely best off taking all of the files together, as opposed to mixing
+      and matching yours with mine, but you may try if you like.</p>
+      
+    <p>Note that compiled binaries are operating system specific (sometimes version
+      specific). I have compiled these .o files to work with the course virtual
+      machine.</p>
+
+      <p>While you are welcome to use these binaries that I provide if you wish,
+      a very small portion of the grade for the assignment will be reserved for
+      those who manage to make this work entirely with their own code. So as not
+      to penalize people repeatedly for the same issue, we'll be only
+      considering new binaries added for each assignment. I currently have the
+      assignment worth a total of 12 points; half of one point is reserved for
+      those who use their own code without including my <kbd>tokenizer.o</kbd>
+      binary.</p>
+
+
+    <p>To compile your code, issue the command "make" at the command prompt. (This
+      will give an error if you haven't yet created the .c files you need, or have
+      changed the Makefile to refer to the necessary .o files.)</p>
+
+    <p>To run your code, first create a file with some Scheme code in it, and give
+      it a filename (e.g., <kbd>input.txt</kbd>). Then issue this command at a
+      prompt:</p>
+
+    <pre>      ./parser &lt; input.txt
+    </pre>
+
+    <p>Your code should read data from standard input. In that case, the
+    above command will redirect the text in the input.txt file into your
+    program.</p>
+
+    <p>To run your code through valgrind, I have provided a shell script to set
+    all the appropriate options. You can do it this way:</p>
+
+   <pre>      ./valgrind.sh ./parser &lt; input.txt
+   </pre>
+
+
+
+    <h3>The assignment</h3>
+
+    <p>You should create a <kbd>parser.c</kbd> file that implements the functions
+      specified in <kbd>parser.h</kbd>. Particularly, you will need to write a
+      function <kbd>parse</kbd> that uses the token list from the last assignment
+      to construct a list of parse trees.</p>
+
+     <p>For example, here is a syntactically
+       correct Scheme program:</p>
+    <pre>      (define x (quote a))
+      (define y x)
+      (car y)
+    </pre>
+    
+    <p>Any Scheme program consists of a list of S-expressions. An S-expression
+    always has parentheses around it, unless it is an atom. Note that a Scheme
+    program itself, then, is not a single-S-expression; it is a list of
+    S-expressions.</p>
+
+    <p>Your <kbd>parse</kbd> function should therefore return a list, using the
+      linked list structure that we have been using, of parse trees. A parse
+      tree, in turn, uses the linked list structure again to represent a
+      tree. For example, the expression <kbd>(define x (quote a))</kbd> would
+      become the following parse tree, where each box is a <kbd>Value</kbd>:</p>
+
+                          
+    <img src="./Part 4 Parser_files/parse.png" width="500">
+
+    <p>The above parse tree stucture would be the first item in a 3-item linked
+    list that represents the above Scheme program.</p>
+
+    <p>Do not include parentheses in your parse tree. Their purpose is to tell
+      you the structure of the tree, so once you have an actual tree you don't
+      need them anymore - they'll only get in the way. (Technically, this means
+      that you're creating an <i>abstract syntax tree</i>, not a parse tree,
+      since not all of the input is preserved.)</p>
+
+    <p>Parsing languages can be pretty complicated. The good news is that
+      parsing Scheme is really easy, at least in a relative sense. Since your
+      Scheme code IS a tree, you just need to be able to read it as such and
+      turn it into a tree in memory. You can do it with a stack of tokens:</p>
+
+    <ul>
+
+      <li>Initialize an empty stack.</li>
+
+      <li>While there are more tokens:
+
+        <ul>
+
+          <li>Get the next token.</li>
+          
+          <li>If the token is anything other than a close paren,
+            push it onto the stack.</li>
+
+          <li>If the token is a close paren, start popping items
+            from your stack until you pop off an open paren (and
+            form a list of them as you go). Push that list back
+            on the stack.</li>
+
+        </ul>
+
+      </li>
+
+    </ul>
+
+    <p>So you'll need a stack... your linked list is a fine
+      candidate for it.</p>
+
+    <p>You'll also need to write a <kbd>printTree</kbd> function. The output
+      format for a parse tree of valid Scheme code is very simple: it looks
+      exactly like Scheme code!  To output an internal node in the parse tree,
+      output <kbd>(</kbd> followed by the outputs of the children of that internal
+      node from left to right followed by
+      <kbd>)</kbd>.  To output a leaf node (a non-parenthetical
+      token), just output its value as you did in the tokenizer,
+      sans type.</p>
+
+    <h3>Syntax errors</h3>
+
+    <p>As with the tokenizer, your parser should never crash with a segmentation
+      fault, bus error, or the like. Here are the different types of syntax
+      errors you should handle:</p>
+
+    <ol>
+
+      <li>If the input code ever has too many close parentheses
+        (in other words, if you ever encounter a close paren that
+        doesn't match a previous open paren), print <kbd>Syntax
+        error: too many close parentheses</kbd>.</li>
+
+      <li>If the <kbd>parse</kbd> function returns an incomplete
+        parse tree and the end of the input is reached and there
+        are too few close parentheses, print <kbd>Syntax
+        error: not enough close parentheses</kbd>.</li>
+
+    </ol>
+
+    <p>If you ever encounter a syntax error, your program should exit after
+      printing the error - don't do any more parsing. This is why we wrote the
+      function <kbd>texit</kbd>. Also feel free to print Scheme code around the
+      error to be helpful if you can, though this optional.</p>
+
+    <p>Most production parsers continue to try to parse after an error to
+    provide additional error messages. Your efforts here may help you to gain
+    some sympathy as to why all error messages after the first one are
+    questionable!</p>
+
+    <h3>Sample output</h3>
+
+<pre>$ cat test1
+(if 2 3)
+(+ ))
+
+$ cat test2
+(define map
+  (lambda (f L)
+    (if (null? L)
+        L
+        (cons (f (car L))
+              (map f (cdr L))))))
+
+$ cat test3
+1 2 (3)
+
+$ ./parser &lt; test1
+Syntax error: too many close parentheses
+
+$ ./parser &lt; test2
+(define map (lambda (f L) (if (null? L) L (cons (f (car L)) (map f (cdr L))))))
+
+$ ./parser &lt; test3
+1 2 (3)
+</pre>
+
+
+<h3>Formatting your output</h3>
+
+<p>You may find that it is easier to produce output similar to the above but
+with extraneous white space. For me, I had to hack some extra code to make sure
+that the last item of a list didn't have a space between it and the closing
+paren that followed it. You may have extraneous whitespace in your output if you
+wish, but I would optionally encourage you to make your output match the
+above. Your final product will look a lot more "real" if you put this effort
+in. You will not lose points for extra spaces, assuming that they aren't in the
+middle of strings or something like that.</p>
+
+
+    <h3>Sample code</h3>
+
+    <p>Here is a rough approximation of part of my parse function. My addToParseTree function
+      takes in a pre-existing tree, a token to add to it, and a pointer to an
+      integer <kbd>depth</kbd>. depth is updated to represent the number of
+      unclosed open parentheses in the parse tree. The parse tree is complete if
+      (and only if) <kbd>depth == 0</kbd> when the parse function returns.</p>
+
+<pre class="boxed">
+Value *parse(Value *tokens) {
+
+    Value *tree = makeNull();
+    int depth = 0;
+
+    Value *current = tokens;
+    assert(current != NULL &amp;&amp; "Error (parse): null pointer");
+    while (current-&gt;type != NULL_TYPE) {
+        Value *token = car(current);
+        tree = addToParseTree(tree,&amp;depth,token);
+        current = cdr(current);
+    }
+    if (depth != 0) {
+        syntaxError(); // error case 4
+    }
+}
+</pre>
+
+    <h3>Memory errors</h3>
+
+    <p>Your code should have no memory leaks or memory errors
+      when run on any input (correct or incorrect)
+      using <kbd>valgrind</kbd>. We will be checking this during
+      grading.</p>
+
+
+<h3>What to submit</h3>
+<p>Push everything (c files, h files, Makefile, etc.) to your git repository.</p>
+
+<p>You should also include in your submission a collection of at least 4 pairs
+of test files. (More is better!) Each pair of files
+should be named parser-test.input.XX and parser-test.output.XX, where XX
+is a test number. It should be the case that if I run the following command then
+I get no output:</p>
+
+<pre class="boxed">./parser &lt; parser-test.input.XX | diff parser-test.output.XX -
+</pre>
+
+<p>When we test your code for grading purposes, we will use our own set of test
+files which we will run using exactly the same command as described above. Test
+carefully.</p>
+
+<p>Your code should have no memory leaks or memory errors when run on any input
+  (correct or incorrect) using <kbd>valgrind</kbd>. We will be checking this as
+  well during grading.</p>
+
+<p>Remember, you can test your code in <kbd>valgrind</kbd> this way:</p>
+
+<pre class="boxed">./valgrind.sh ./parser &lt; parser-test.input.XX
+</pre>
+
+
+<p>Have fun parsing!</p>
+
+
+<hr>
+
+<p><i>This assignment was originally created by David Liben-Nowell and
+    has since been updated by Dave Musicant and Laura
+    Effinger-Dean.</i></p>
+
+</div>
+
+
+</body></html>

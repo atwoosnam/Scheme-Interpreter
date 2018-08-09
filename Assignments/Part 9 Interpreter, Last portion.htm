@@ -1,0 +1,268 @@
+
+<!-- saved from url=(0074)https://www.cs.carleton.edu/faculty/dmusican/cs251s17/interp9complete.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="./Part 9 Interpreter, Last portion_files/coursepage.css" title="Blue Haze stylesheet">
+    <link rel="stylesheet" type="text/css" href="./Part 9 Interpreter, Last portion_files/color-scheme.css" title="Blue Haze stylesheet">
+    <title>CS 251: Interpreter, Last portion</title>
+  <link href="./Part 9 Interpreter, Last portion_files/css" rel="stylesheet"></head><span id="warning-container"><i data-reactroot=""></i></span>
+
+  <body>
+    <div id="bodyText">
+
+    <h1>CS 251: Interpreter, Last portion</h1>
+
+    <p>This assignment is the final phase of your interpreter. Under college
+      policy, no extensions are allowed past the end of the last final exam.</p>
+
+    <p>This last stage consists of a list of additions to make to your
+    interpreter. This assignment takes less description than many of the others.
+    Most portions within it are independent, which gives you more flexibility at
+    this busy point in the term to work on your project and divide some of the
+    effort among your team members. That said, don't underestimate the amount of
+    work here; this assignment has more individual pieces to do than any of the
+    other interpreter project parts.</p>
+
+    <p>Required additions to your interpreter are as follows:</p>
+
+    <ol>
+
+      <li>Some missing special
+        forms: <kbd>let*</kbd>, <kbd>letrec</kbd>, <kbd>cond</kbd>, <kbd>and</kbd>, <kbd>or</kbd>,
+        <kbd>set!</kbd>, and <kbd>begin</kbd>.
+
+      <p>Here are some more detailed specifications. As in some previous
+      assignments, I have included links for more detail to "The Scheme
+      Programming Language" by R. Kent Dybvig.</p>
+
+      <ul>
+
+        <li>See <a href="http://www.scheme.com/tspl4/binding.html#./binding:h4">Dybvig</a>
+         for a precise description of how the different <kbd>let</kbd>-style forms
+         work.</li>
+
+
+        <li><p><kbd>let*</kbd>: Read the specification
+          in <a href="http://www.scheme.com/tspl4/binding.html#./binding:h4">Dybvig</a>. You
+          might implement this by using a new frame for each binding, or by
+          adding to a single frame as you evaluate more definitions.</p></li>
+
+        <li><p><kbd>letrec</kbd>: Read the specification
+          in <a href="http://www.scheme.com/tspl4/binding.html#./binding:h4">Dybvig</a>. One
+          particular statement Dybvig makes is "The order of evaluation of the
+          expressions is unspecified, so a program must not evaluate a reference
+          to any of the variables bound by the letrec expression before all of
+          the values have been computed. (Occurrence of a variable within a
+          lambda expression does not count as a reference, unless the resulting
+          procedure is applied before all of the values have been computed.) If
+          this restriction is violated, an exception with condition type
+          &amp;assertion is raised." For purposes of this assignment, you do not
+          have to perform this particular bit of error checking. (Various
+          dialects of Scheme seem to handle this particular case in a variety of
+          different ways; we're just going to avoid this error case entirely.)
+          Of course, you can add in this error checking if you wish as an
+          optimal extension.</p></li>
+
+        <li><p><kbd>set!</kbd>: Read the specification
+        in <a href="http://www.scheme.com/tspl4/binding.html#./binding:h7">Dybvig</a>. This
+        should be similar to <kbd>define</kbd>, except that it does not create a
+        new variable; rather, it modifies an existing one.</p></li>
+
+        <li><p><kbd>begin</kbd> should evaluate each of its arguments and return
+          the result of the last argument. Read the specification
+          in <a href="http://www.scheme.com/tspl4/control.html#./control:s4">Dybvig</a>.</p></li>
+
+        <li><p>You may assume that all of the conditions for <kbd>cond</kbd> have
+            type boolean; we will not test otherwise. Your code
+            for <kbd>cond</kbd> should allow either <kbd>#t</kbd> or <kbd>else</kbd>
+            as a default case. (If you've done things right, <kbd>#t</kbd> should
+            work automatically; you'll need to code <kbd>else</kbd> as a special
+            case.)</p></li>
+
+        <li><p>For both <kbd>cond</kbd> and <kbd>begin</kbd>, if
+            there's nothing to return (i.e. zero arguments
+            to <kbd>begin</kbd> or no true cases
+            for <kbd>cond</kbd>), return <kbd>VOID_TYPE</kbd>.</p></li>
+
+        <li><p>Strangely, <kbd>cond</kbd> technically allows additional arguments
+        or none at all following the condition, like</p>
+
+          <pre>            (cond (#t 3 5 7))
+            (cond (#t))
+          </pre>
+
+          <p>We will not test any cases like this, and you do not need to implement them.</p></li>
+
+
+        <li>Note that <kbd>and</kbd> and <kbd>or</kbd> are special forms; make sure
+        you understand why. You should be able to create cases with side-effects
+        generating code (like <kbd>set!</kbd>) where the special form nature
+        of <kbd>and</kbd> and <kbd>or</kbd> matters.</li>
+
+        <li><kbd>and</kbd> and <kbd>or</kbd> both have specified behavior if you
+        supply no arguments to them, or if you supply arguments that aren't
+        Booleans. We will not test any of those cases.</li>
+
+      </ul>
+
+      </li>
+
+      <li><p>More primitive functions. Feel free to add others to
+          get your old Scheme code working. The following
+          functions are required:</p>
+
+        <ul>
+          <li><p>Arithmetic: <kbd>*</kbd>, <kbd>-</kbd>, <kbd>/</kbd>,
+              <kbd>modulo</kbd>, <kbd>&lt;</kbd>, <kbd>&gt;</kbd>
+              and <kbd>=</kbd>.</p>
+
+              <ul>
+                <li><kbd>*</kbd> should be able to take any number
+                  of numeric arguments &gt;= 2, but for the other
+                  functions you may assume two numeric arguments
+                  (i.e., print evaluation error if
+                  not). <kbd>modulo</kbd> may further assume that
+                  its arguments are integers. We will not test non-integer cases
+                  for <kbd>modulo</kbd>.</li>
+                <li><kbd>/</kbd> should return a real if the numbers do not
+                  divide evenly. (DrRacket returns a fraction; don't do this.)
+                  For example, (/ 5 2) should return 2.5. We will only test
+                  division with two arguments.</li>
+              </ul>
+              
+          </li>
+          
+        </ul>
+
+      </li>
+
+</ol>
+
+    <p>Here are some optional additions that I encourage, in addition to other
+    optional ideas I have suggested throughout the project. If you have
+    implemented anything optional, explain what you have done in
+    a <kbd>readme.txt</kbd> file.</p>
+
+    <ol>
+
+      <li>Any missing primitive functions or special forms that
+        you'd like to
+        add. (Suggestions: <kbd>&gt;=</kbd>, <kbd>&lt;=</kbd>, <kbd>list</kbd>,
+        <kbd>eq?</kbd>, <kbd>equal?</kbd>)
+        </li>
+
+      <li>Garbage collection. (A simple
+        mark-and-sweep collector is relatively easy to implement
+        and should improve your memory usage.)</li>
+
+      <li><p>A simple interface. The classic core of an interpreter is the
+          read-eval-print loop, a.k.a. REPL. You can add
+          this functionality to your code so that you can more
+          easily use your interpreter interactively. For example:</p>
+
+<pre>$ ./interpreter
+&gt; (define factorial
+.   (lambda (n)
+.     (if (= n 0)
+.         1
+.         (* n (factorial (- n 1))))))
+&gt; (factorial 5)
+120
+&gt;
+</pre>
+
+        <p>One issue you will run into with this is you get
+          unnecessary printouts of prompts when you are using a
+          file for input instead of typing the code in
+          manually. You can figure out whether the interpreter is
+          being called interactively using the
+          <kbd>isatty</kbd> and <kbd>fileno</kbd> functions (<kbd>man
+          isatty</kbd>). You should only print the prompts
+          if <kbd>stdin</kbd> is not interactive.</p>
+
+        <p>Note that you can end an interactive session by typing
+          Ctrl-D (sending an "end-of-file" character), so there
+          is no need for a "quit" command.</p>
+
+      </li>
+
+
+      <li>Use of the readline library to provide things like
+        history and editing for your REPL.</li>
+
+
+      <li><kbd>(load file.rkt)</kbd>. This is a primitive function
+        that reads in a file and executes the code in the file as
+        if it were typed in.</li>
+
+    </ol>
+
+
+    <h3>Memory errors</h3>
+
+    <p>Your code should have no memory leaks or memory errors when run on any
+      input (correct or incorrect) using <kbd>valgrind</kbd>. We will be checking
+      this during grading.</p>
+
+
+<h3>What to submit</h3>
+    <p>Submit via git as usual, and tag your submission
+    as <kbd>complete</kbd>. If you need to resubmit, create another tag with a
+    dot extension, such as <kbd>complete.1</kbd>, <kbd>complete.2</kbd>,
+    and so on. Make sure that you both push your tags <i>and</i> your code
+    itself, as in:</p>
+
+    <pre>      git commit -am "We are done!"
+      git push
+      git tag complete
+      git push --tags
+    </pre>
+
+
+
+
+<p>Add at least four more tests to your test files that test the functionality
+of the primitives you have added. Indicate in a readme.txt file which tests are designed to be
+testing this assignment in particular. Each pair of files should be named
+interpreter-test.input.XX and interpreter-test.output.XX, where XX is a test
+number. It should be the case that if I run the following command then I get no
+output:</p>
+
+<pre class="boxed">./interpreter &lt; interpreter-test.input.XX | diff interpreter-test.output.XX -
+</pre>
+
+<p>When we test your code for grading purposes, we will use our own set of test
+files which we will run using exactly the same command as described above. Test
+carefully.</p>
+
+
+<p>Your code should have no memory leaks or memory errors when run on any input
+  (correct or incorrect) using <kbd>valgrind</kbd>. We will be checking this as
+  well during grading.</p>
+
+<p>Remember, you can test your code in <kbd>valgrind</kbd> this way:</p>
+
+<pre class="boxed">./valgrind.sh &lt; interpreter-test.input.XX
+</pre>
+
+
+<p>Have fun interpreting!</p>
+
+
+
+
+
+
+
+
+    <hr>
+
+    <p><i>This assignment was originally created by David
+        Liben-Nowell and has since been updated by Dave Musicant
+        and Laura Effinger-Dean.</i></p>
+
+</div>
+
+  
+
+
+</body></html>

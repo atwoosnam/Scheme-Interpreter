@@ -1,0 +1,19 @@
+(define not (lambda (thing)
+	(if thing #f #t)))
+
+(letrec ((sum (lambda (x)
+                (if (= x 0)
+                    0
+                    (+ x (sum (- x 1)))))))
+  (sum 5))
+
+(letrec ((is-even? (lambda (n)
+                       (or (= n 0)
+                           (is-odd? (- n 1)))))
+           (is-odd? (lambda (n)
+                      (and (not (= n 0))
+                           (is-even? (- n 1))))))
+   (is-odd? 11))  
+;(define a 12)
+;(or #t (define a 6))
+;a

@@ -1,0 +1,4 @@
+(define variable 12)
+(define variunable 13)
+(if #t variable variunable)
+(if #f variable variunable)

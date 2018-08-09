@@ -1,0 +1,250 @@
+
+<!-- saved from url=(0076)https://www.cs.carleton.edu/faculty/dmusican/cs251s17/interp8primitives.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="./Part 8 Interpreter, Primitives_files/coursepage.css" title="Blue Haze stylesheet">
+    <link rel="stylesheet" type="text/css" href="./Part 8 Interpreter, Primitives_files/color-scheme.css" title="Blue Haze stylesheet">
+    <title>CS 251: Interpreter, Primitives</title>
+  <link href="./Part 8 Interpreter, Primitives_files/css" rel="stylesheet"></head><span id="warning-container"><i data-reactroot=""></i></span>
+
+  <body>
+
+    <div id="bodyText">
+
+    <h1>CS 251: Interpreter, Primitives</h1>
+
+    <p>In the last assignment, you implemented <kbd>lambda</kbd>, which let you
+    create functions within Scheme. Scheme also has primitive functions, which
+    are "built-in" functions that are not written in Scheme themselves. You'll
+    implement primitive functions for this assignment.</p>
+
+
+    <p>Here are the particular primitive functions you need to
+    implement: <kbd>+</kbd>, <kbd>null?</kbd>, <kbd>car</kbd>,
+          <kbd>cdr</kbd>, and <kbd>cons</kbd>.</p>
+        
+        <p>Primitives are functions not implemented in Scheme; you'll implement
+          them as C functions that get called by your interpreter directly. More
+          details follow in the section below on primitive functions. A few
+          comments on these specific primitives:</p>
+
+          <ul>
+            <li><kbd>+</kbd> should be able to handle any number of integer or
+              real arguments (if 0 arguments, return 0). We'll simplify this a
+              little bit by specifiying that your answer should always be a
+              real. That said, an optional extension that you can add if you
+              like would be to make it so that if any of the arguments are
+              reals, return a real; else return an integer.</li>
+
+            <li><kbd>null?</kbd>, <kbd>car</kbd>, and <kbd>cdr</kbd> should take one
+              argument each, but you should have error checking to make sure
+              that's the case. Similarly, you need to check to make sure that
+              the argument is appropriately typed.</li>
+
+            <li><kbd>cons</kbd> should take two arguments, but you should have
+              error checking to make sure that's the case. You'll also need to
+              modify the code you have that handles output,
+              because <kbd>cons</kbd> allows you to create non-list
+              pairs. You'll need to add functionality to use a dot to separate
+              such
+              pairs. <a href="http://www.scheme.com/tspl4/objects.html#./objects:h3">This
+              portion of the Dybvig Scheme book</a> does a decent job at describing how such
+              output should work. </li>
+          </ul>
+
+
+
+<h3>Sample tests</h3>
+
+<pre>$ cat test1
+(define length
+  (lambda (L)
+    (if (null? L)
+        0
+        (+ 1 (length (cdr L))))))
+
+(length (quote ()))
+(length (quote (4 5 6)))
+$ ./interpreter &lt; test1
+0
+3
+</pre>
+
+
+<pre>$ cat test2
+(define append
+  (lambda (L1 L2)
+    (if (null? L1)
+        L2
+        (cons (car L1) (append (cdr L1) L2)))))
+
+(append (quote (4 5)) (quote (6 7)))
+
+(define reverse-list
+  (lambda (L)
+    (if (null? L)
+        L
+        (append (reverse-list (cdr L)) (cons (car L) (quote ()))))))
+
+(reverse-list (quote ()))
+(reverse-list (quote (1 2 3 4)))
+(reverse-list (quote (("computer" "science") "is" "awesome")))
+$ ./interpreter &lt; test2
+'(4 5 6 7)
+'()
+'(4 3 2 1)
+'("awesome" "is" ("computer" "science"))
+</pre>
+
+
+   <h3>Primitive functions</h3>
+
+    <p>There's one bit of trickiness that will come up: you're going to want to
+      have both functions-as-closures and functions-as-primitives. Here's how to
+      do this. Once again, modify your <kbd>value.h</kbd> to allow for a
+      PRIMITIVE_TYPE. Since this is a function to a pointer in C, here's how the
+      additional portion appears:</p>
+
+<pre>typedef enum {INT_TYPE, ..., PRIMITIVE_TYPE, ...} valueType;
+
+struct Value {
+    valueType type;
+    union {
+        int i;
+
+        ...
+
+        // A primitive style function; just a pointer to it, with the right
+        // signature (pf = my chosen variable for a primitive function)
+        struct Value *(*pf)(struct Value *);
+    }
+}
+</pre>        
+
+
+    <p>To show how I'm using primitive functions, here's relevant code from
+      scattered spots in my implementation for an exponential function that
+      you're not writing unless you want to do some optional additional
+      work:</p>
+
+<pre>
+Value *primitiveExp(Value *args) {
+   // check that args has length one and car(args) is numerical
+   return makeFloatValue(exp(floatval(car(args)))); 
+}
+
+void bind(char *name, Value *(*function)(struct Value *), Frame *frame) {
+    // Add primitive functions to top-level bindings list
+    Value *value = talloc(sizeof(Value));
+    value-&gt;type = PRIMITIVE_TYPE;
+    value-&gt;pf = function;
+    frame-&gt;bindings = ....
+    ....
+}
+
+void interpret(Value *tree) {
+
+    ...
+
+    // Make top-level bindings list
+    Frame *frame = talloc(sizeof(Frame));
+    frame-&gt;bindings = makeNull();
+    frame-&gt;parent = NULL;
+
+
+    bind("+",primitiveAdd,frame);
+    bind("exp?",primitiveExp,frame);
+    ...
+}
+
+
+</pre>
+
+
+<h3>Using my binaries</h3>
+<p>If you wish to continue using my binaries, you are free to do so. No new
+functionality has been added to them; it's the same code through the parser that
+I've supplied previously. However, because we're changing the <kbd>value.h</kbd>
+file, I need to supply you with recompiled versions of that
+code. <a href="https://www.cs.carleton.edu/faculty/dmusican/cs251s17/primitives.zip">This zip file</a> is the same that I have
+supplied in the past, but I have made the updates to the <kbd>value.h</kbd> file
+indicated above and recompiled the files. Use if you wish; see earlier
+assignments for instructions on how to do so. There is no penalty associated
+with using binaries on this assignment, since there isn't any new functionality
+of note in them.</p>
+
+
+
+    <h3>Memory errors</h3>
+
+    <p>Your code should have no memory leaks or memory errors when run on any
+      input (correct or incorrect) using <kbd>valgrind</kbd>. We will be checking
+      this during grading.</p>
+
+
+<h3>What to submit</h3>
+    <p>Submit via git as usual, and tag your submission
+    as <kbd>primitives</kbd>. If you need to resubmit, create another tag with a
+    dot extension, such as <kbd>primitives.1</kbd>, <kbd>primitives.2</kbd>,
+    and so on. Make sure that you both push your tags <i>and</i> your code
+    itself, as in:</p>
+
+    <pre>      git commit -am "We are done!"
+      git push
+      git tag primitives
+      git push --tags
+    </pre>
+
+
+
+
+<p>Add at least four more tests to your test files that test the functionality
+of the primitives you have added. Indicate in a readme.txt file which tests are designed to be
+testing this assignment in particular. Each pair of files should be named
+interpreter-test.input.XX and interpreter-test.output.XX, where XX is a test
+number. It should be the case that if I run the following command then I get no
+output:</p>
+
+<pre class="boxed">./interpreter &lt; interpreter-test.input.XX | diff interpreter-test.output.XX -
+</pre>
+
+<p>When we test your code for grading purposes, we will use our own set of test
+files which we will run using exactly the same command as described above. Test
+carefully.</p>
+
+
+<p>Your code should have no memory leaks or memory errors when run on any input
+  (correct or incorrect) using <kbd>valgrind</kbd>. We will be checking this as
+  well during grading.</p>
+
+<p>Remember, you can test your code in <kbd>valgrind</kbd> this way:</p>
+
+<pre class="boxed">./valgrind.sh  &lt; interpreter-test.input.XX
+</pre>
+
+
+<p>Have fun interpreting!</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <hr>
+
+    <p><i>This assignment was originally created by David
+        Liben-Nowell and has since been updated by Dave Musicant
+        and Laura Effinger-Dean.</i></p>
+
+</div>
+  
+
+</body></html>

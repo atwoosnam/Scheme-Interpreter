@@ -1,0 +1,3 @@
+(define test1
+  (lambda (a b) (if #t a b)))
+(test1 2 3 4 5)

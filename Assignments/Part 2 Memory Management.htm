@@ -1,0 +1,155 @@
+
+<!-- saved from url=(0073)https://www.cs.carleton.edu/faculty/dmusicant/cs251s17/interp2talloc.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="./Part 2 Memory Management_files/coursepage.css" title="Blue Haze stylesheet">
+    <link rel="stylesheet" type="text/css" href="./Part 2 Memory Management_files/color-scheme.css" title="Blue Haze stylesheet">
+  <link rel="shortcut icon" type="image/x-icon" href="https://www.cs.carleton.edu/faculty/dmusicant/cs251s17/favicon.ico">
+
+<title>CS 251: Memory Management</title>
+<link href="./Part 2 Memory Management_files/css" rel="stylesheet"></head><span id="warning-container"><i data-reactroot=""></i></span>
+
+<body>
+
+<div id="bodyText">
+
+<h2>CS 251: Memory Management</h2>
+
+<p>In the last assignment, you built a linked list, and wrote code that
+  hopefully cleaned up the list appropriately. Perhaps you have been missing the
+  convenience of using a language with a garbage collection system that spares
+  you from having to remember to clean individual things up. For this
+  assignment, we're going to build an exceedingly dumb but effective garbage
+  collector. This garbage collector is so inefficient that this may bother some
+  of you; if so, consider improving the garbage collector to be an optional
+  extension that you can think about when the project is complete.</p>
+
+<h3>The idea</h3>
+
+<p>You'll be creating your own replacement for <kbd>malloc</kbd>, which we'll
+  call <kbd>talloc</kbd> (for "track malloc"). For a user, <kbd>talloc</kbd> seems
+  to work just like <kbd>malloc</kbd>, in that it allocates memory and returns a
+  pointer to it. Inside your code for <kbd>talloc</kbd>, you'll need to
+  call <kbd>malloc</kbd> to do exactly that. Additionally, <kbd>talloc</kbd> should
+  store the pointer to that memory in a linked list that we'll call the "active
+  list" for purposes of discussion. Every time <kbd>talloc</kbd> is called, another
+  pointer to memory gets added to that active list.</p>
+
+<p>You'll then also create a function called <kbd>tfree</kbd>, which will free up
+  all memory associated with pointers accumulated do to calls
+  to <kbd>talloc</kbd>. Calling <kbd>tfree</kbd> at arbitrary points in your program
+  would be a complete disaster, as it would free up memory that you may still be
+  using. The idea is that we will be using <kbd>talloc</kbd> as a replacement
+  for <kbd>malloc</kbd>, and then calling <kbd>tfree</kbd> at the very end of our
+  main function. You'll then be able to program with the illusion of using a
+  garbage collector, except that the garbage collector never actually kicks in
+  until the program is about to end. (This is actually an option for the leJOS
+  system for programming LEGO Mindstorms in Java; ask me in class as to why a
+  real system would implement such a crazy-seeming idea.)</p>
+
+<p>You'll also write the function <kbd>texit</kbd>, which is a simple replacement
+  for the built-in function <kbd>exit</kbd>. <kbd>texit</kbd> calls <kbd>exit</kbd>,
+  but calls <kbd>tfree</kbd> first.</p>
+
+<p>Finally, you'll then modify your linked list from the previous
+  assignment. The function <kbd>cleanup</kbd> that you wrote will be eliminated,
+  as it is no longer necessary. You should also modify <kbd>reverse</kbd> so that
+  it no longer duplicates data between the two linked lists. When you reverse a
+  list, that should return a new list with a new set of CONS_TYPE Value nodes,
+  but the actual data in that list should not be copied from the old list to the
+  new. This would be a disaster to try to clean up manually, but <kbd>tfree</kbd>
+  will handle it easily. This change will make some later aspects of the project
+  much easier.  Your linked list code should now exclusively
+  use <kbd>talloc</kbd>, and should not use <kbd>malloc</kbd> at all.  </p>
+
+<h3>Storing the active list</h3>
+
+<p>One issue you'll need to think through is where the variable for the head of
+  the active list should be. In an object-oriented language, this would likely
+  be a private static variable in a memory management class. Oops. You can't
+  make the active list head a local variable in <kbd>talloc</kbd>,
+  because <kbd>tfree</kbd> wouldn't be able to see it. We could make it
+  a parameter to <kbd>talloc</kbd> and <kbd>tfree</kbd>, but then the programmer
+  using <kbd>talloc</kbd> has to keep track of this, and could conceivably have
+  multiple active lists, which sounds ugly. This is an occasion where global
+  variable makes sense, and so you should use one. A global variable in C is
+  declared outside of any functions. Typically, it is placed near the top of
+  your file, underneath the include statements.</p>
+
+<p>There's one bit of circular logic you've got to untangle. <kbd>talloc</kbd>
+needs to store a pointer (returned by <kbd>malloc</kbd>) onto a linked list. Your
+linked list code, in turn, uses <kbd>talloc</kbd>. Rather than trying to this work
+in some complex mutually dependent structure, break the circularity. In
+your <kbd>talloc</kbd> code, the single linked list that you use to store
+allocated pointers should be a linked list generated via <kbd>malloc</kbd>,
+instead of <kbd>talloc</kbd>. That means you'll need to duplicate some of your
+linked list code. Duplicated code is generally to be avoided, but avoiding this
+circular nightmare is worth it.</p>
+
+
+<h3>Some specifics</h3> <p>After you check out your blank repository (it has
+your teamname, followed by "talloc"), download <a href="https://www.cs.carleton.edu/faculty/dmusicant/cs251s17/talloc.zip">this zip
+file</a> and add the contents to your git project. The files you get
+include:</p>
+<ul>
+<li>value.h: this defines the Value structure, described above</li>
+<li>linkedlist.h: this is a modification form the previous assignment that
+  removes the function <kbd>cleanup</kbd>, and also changes the documentation
+  on <kbd>reverse</kbd> to indicate that data is not to be copied.</li>
+<li>talloc.h: this defines the functions that you'll need to write from scratch
+  for this assignment.</li>
+<li>main.c: this is a tester function.</li>
+</ul>
+
+<p>The missing files here are linkedlist.c and talloc.c. You should create
+  talloc.c from scratch yourself. For linkedlist.c, you should copy in code from
+  your previous assignment, and then modify it accordingly. To compile your
+  code, issue the command "make" at the command prompt. This will follow the
+  instructions in the Makefile for building your project in order to produce an
+  executable called <kbd>linkedlist</kbd>. At first, it won't build at all because
+  your talloc.c and linkedlist.c files aren't there. To get started, copy in
+  linkedlist.c (remove the cleanup function), and for now, within talloc.c just
+  create every function that you need with no code inside it so that you can get
+  everything to build. Once you have done that, you can begin implementing your
+  functions, and testing appropriately.</p>
+
+<p>When we test your code for grading purposes, we will use the header files
+exactly as provided here, so don't change them. We will also use main.c exactly
+as provided here. Furthermore, we will use a fancier main.c, of our own
+devising, that follows the specifications in the header files  to see if you've
+carefully tested. <i>The main.c that I have provided very
+intentionally does not test all possible cases.</i> You should test further.</p>
+
+<p>Your code should have no memory leaks or memory errors when run on any input
+  (correct or incorrect) using <kbd>valgrind</kbd>. We will be checking this
+  during grading.</p>
+
+<p>To run your code, issue this command at a prompt:</p>
+
+<pre>./talloctest
+</pre>
+
+To run your code through valgrind, I have provided a shell script to set all the
+appropriate options. You can do it this way:
+
+<pre>./valgrind.sh
+</pre>
+
+
+
+<h3>What to submit</h3>
+<p>Push all of your code into your git repository. Your submitted files should
+  be exactly what you checked out, but also with files named linkedlist.c and
+  talloc.c. If you wish, you can also submit an updated main.c for us to look at
+  with additional testing code that you write; but remember, your code needs to
+  run with the original main.c that we provide. You might perhaps create a
+  different main.c for your own testing purposes, and for your own testing, you
+  can modify the Makefile accordingly. When we grade, we will simply copy out
+  your linkedlist.c and talloc.c files into our own project, and test it.</p>
+
+<p>Good luck, and have fun!</p>
+
+</div>
+
+
+
+</body></html>

@@ -1,0 +1,11 @@
+(let ((x 1)) (let ((y 2)) (let ((z 3)) (let ((x 100)) (let ((a 11) (b 13) (c 1000000)) (if #t x a))))))
+(let ((x 1)) (let ((y 2)) (let ((z 3)) (let ((x 100)) (let ((a 11) (b 13) (c 1000000)) (if #f x a))))))
+(let ((x 1)) (let ((y 2)) (let ((z 3)) (let ((x 100)) (let ((a 11) (b 13) (c 1000000)) (if #t y a))))))
+(let ((x 1)) (let ((y 2)) (let ((z 3)) (let ((x 100)) (let ((a 11) (b 13) (c 1000000)) (if #f x c))))))
+
+(if #t (let ((x 3)(y 4)) x))
+
+(let((x #t) (y #f))(if x 3))
+(let((x #t) (y #f))(if x (if y 4 5) 3))
+
+(if "hello" 4 5)

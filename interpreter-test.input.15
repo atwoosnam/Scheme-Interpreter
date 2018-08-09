@@ -1,0 +1,7 @@
+;(abc 2)
+;(car (5 6))
+(car (quote (5 6)))
+(cdr (quote (5 6 7)))
+(null? (quote(5 6 7)))
+(null? (quote()))
+(+ 5 6 1.3)

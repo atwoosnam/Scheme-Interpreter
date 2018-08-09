@@ -1,0 +1,256 @@
+
+<!-- saved from url=(0072)https://www.cs.carleton.edu/faculty/dmusican/cs251s17/interp7lambda.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="./Part 7 Interpreter, Define _ Lambda_files/coursepage.css" title="Blue Haze stylesheet">
+    <link rel="stylesheet" type="text/css" href="./Part 7 Interpreter, Define _ Lambda_files/color-scheme.css" title="Blue Haze stylesheet">
+    <title>CS 251: Interpreter, Define / Lambda</title>
+  <link href="./Part 7 Interpreter, Define _ Lambda_files/css" rel="stylesheet"></head><span id="warning-container"><i data-reactroot=""></i></span>
+
+  <body>
+
+    <div id="bodyText">
+
+    <h1>CS 251: Interpreter, Define / Lambda</h1>
+
+    <p>For this phase of the project, you must support the
+      correct evaluation of the following types of Scheme
+      expressions:</p>
+
+    <ol>
+
+      <li>
+        <p><kbd>(define var expr)</kbd></p>
+
+        <p>Scheme actually
+          has <a href="http://www.scheme.com/tspl4/binding.html#./binding:s24">a
+          number of different variations on <kbd>define</kbd></a>; you only need
+          to implement the first one. Unlike let, define does not create a new
+          environment frame; rather, it modifies the current environment
+          frame. You will therefore need to have a "top" frame which contains
+          bindings of variables created using <kbd>define</kbd>. You can put
+          bindings for primitive functions in this top-level frame too; you'll
+          read more about that later.</p>
+
+        <p>You should not print anything after a define statement. You should go
+          about this by having <kbd>define</kbd> return a special <kbd>Value</kbd>
+          with type <kbd>VOID_TYPE</kbd>, and only print the result of an
+          expression if it is not <kbd>VOID_TYPE</kbd>. There's probably other
+          ways of doing this too. Add a <kbd>VOID_TYPE</kbd> to <kbd>value.h.</kbd></p>
+
+        <p>Scheme is able to detect when define is used in the wrong place -
+          don't worry about this if you don't want to. You can just modify the
+          current frame. We will not test for correct or incorrect behavior
+          if <kbd>define</kbd> is used anywhere but at the top-level. That said,
+          you can add as optional extensions error checking as appropriate.</p>
+      </li>
+
+      <li>
+        <p><kbd>(lambda params body)</kbd></p>
+
+        <p>You will need to implement closures. Specifically, for purposes of
+          this project a closure is just another type of value, containing
+          everything needed to execute a user-defined function: (1) a list of
+          formal parameter names; (2) a pointer to the function body; (3) a
+          pointer to the environment frame in which the function was
+          created. Add a <kbd>CLOSURE_TYPE</kbd> to your <kbd>value.h</kbd>. Within
+          your <kbd>Value</kbd> union, add a <kbd>Closure</kbd>. Here's a snippet of
+          my <kbd>Value</kbd> definition:</p>
+
+<pre>typedef enum {INT_TYPE, ..., VOID_TYPE, CLOSURE_TYPE, ...} valueType;
+
+struct Value {
+    valueType type;
+    union {
+        int i;
+
+        ...
+
+        struct Closure {
+            struct Value *paramNames;
+            struct Value *functionCode;
+            struct Frame *frame;
+        } cl;
+    }
+}
+</pre>        
+
+</li>
+
+      <li>
+        <p>Function application: <kbd>(e1 ... en)</kbd></p>
+
+        <p>You should recursively evaluate <kbd>e1</kbd> through <kbd>en</kbd> and
+          then apply the value of <kbd>e1</kbd> to the remaining values. The
+          section below on function application has more details.</p>
+      </li>
+
+    </ol>
+
+    <p>As usual, your program should never crash or segfault on
+      bad input; just print "evaluation error" and exit
+      gracefully.</p>
+
+    <p>Once you've finished these components, your interpreter
+      should be able to evaluate recursive user-defined
+      functions. For example, the following should work:</p>
+
+<pre>$ cat test1
+(define not
+  (lambda (bool)
+    (if bool #f #t)))
+    
+(define testit
+  (lambda (cond conseq alt)
+    (let ((nconseq (not conseq)) (nalt (not alt)))
+      (if cond nconseq nalt))))
+    
+(testit #t #f #t)
+(testit #f #f #t)
+$ ./interpreter &lt; test1
+#t
+#f
+</pre>
+
+    <h2>Function application</h2>
+    
+    <p>In addition to <kbd>eval</kbd> from part 1, you will need to implement
+      function application. To do this, create a function
+      called <kbd>apply</kbd>:</p>
+
+<pre>Value *apply(Value *function, Value *args);
+</pre>
+
+    <p>You should call this function once you've evaluated the function and the
+      arguments. Here, <kbd>function</kbd> is either a user-defined function
+      (i.e. a closure). You should take the following steps in order to execute
+      the function:</p>
+
+    <ol>
+      <li>Construct a new frame whose parent frame is the
+        environment stored <i>in the closure</i>.</li>
+
+      <li>Add bindings to the new frame mapping each formal
+        parameter (found in the closure) to the corresponding
+        actual parameter (found in <kbd>args</kbd>).</li>
+
+      <li>Evaluate the function body (found in the closure) with
+        the new frame as its environment, and return the result
+        of the call to <kbd>eval</kbd>.</li>
+    </ol>
+
+    <p>Here's my new <kbd>eval</kbd> skeleton, modified to support
+      function application:</p>
+
+
+<pre>Value *eval(Value *tree, Frame *frame) {
+   switch (tree-&gt;type)  {
+     case INT_TYPE:
+        ...
+        break;
+     case ......:
+        ...
+        break;
+     case SYMBOL_TYPE:
+        return lookUpSymbol(tree, frame);
+        break;
+     case CONS_TYPE:  
+        Value *first = car(expr);
+        Value *args = cdr(expr);
+
+       // Sanity and error checking on first...
+
+        if (!strcmp(first-&gt;s,"if")) {
+            result = evalIf(args, frame);
+        }
+
+        // .. other special forms here...
+
+        else {
+
+            // If not a special form, evaluate the first, evaluate the args, then
+            // apply the first to the args.
+            Value *evaledOperator = eval(first, frame);
+            Value *evaledArgs = evalEach(args, frame);
+            return apply(evaledOperator,evaledArgs);
+        }
+        break;
+
+      ....
+    }    
+    ....
+}
+</pre>
+
+
+<h2>Using my binaries</h2>
+<p>If you wish to continue using my binaries, you are free to do so. No new
+functionality has been added to them; it's the same code through the parser that
+I've supplied previously. However, because we're changing the <kbd>value.h</kbd>
+file, I need to supply you with recompiled versions of that
+code. <a href="https://www.cs.carleton.edu/faculty/dmusican/cs251s17/definelambda.zip">This zip file</a> is the same that I have
+supplied in the past, but I have made the updates to the <kbd>value.h</kbd> file
+indicated above and recompiled the files. Use if you wish; see earlier
+assignments for instructions on how to do so. There is no penalty associated with using binaries on this assignment, since there isn't any new functionality of note in them.</p>
+
+
+    <h3>Memory errors</h3>
+
+    <p>Your code should have no memory leaks or memory errors when run on any
+      input (correct or incorrect) using <kbd>valgrind</kbd>. We will be checking
+      this during grading.</p>
+
+
+<h3>What to submit</h3>
+    <p>Submit via git as usual, and tag your submission
+    as <kbd>lambda</kbd>. If you need to resubmit, create another tag with a
+    dot extension, such as <kbd>lambda.1</kbd>, <kbd>lambda.2</kbd>,
+    and so on. Make sure that you both push your tags <i>and</i> your code
+    itself, as in:</p>
+
+    <pre>      git commit -am "We are done!"
+      git push
+      git tag lambda
+      git push --tags
+    </pre>
+
+
+
+
+<p>Add at least four more tests to your test files that test the functionality
+of <kbd>define</kbd> and <kbd>lambda</kbd>. Indicate in a readme.txt file which
+tests are designed to be testing this assignment in particular. Each pair of
+files should be named interpreter-test.input.XX and interpreter-test.output.XX,
+where XX is a test number. It should be the case that if I run the following
+command then I get no output:</p>
+
+<pre class="boxed">./interpreter &lt; interpreter-test.input.XX | diff interpreter-test.output.XX -
+</pre>
+
+<p>When we test your code for grading purposes, we will use our own set of test
+files which we will run using exactly the same command as described above. Test
+carefully.</p>
+
+<p>Your code should have no memory leaks or memory errors when run on any input
+  (correct or incorrect) using <kbd>valgrind</kbd>. We will be checking this as
+  well during grading.</p>
+
+<p>Remember, you can test your code in <kbd>valgrind</kbd> this way:</p>
+
+<pre class="boxed">./valgrind.sh  &lt; interpreter-test.input.XX
+</pre>
+
+
+<p>Have fun interpreting!</p>
+
+
+    <hr>
+
+    <p><i>This assignment was originally created by David
+        Liben-Nowell and has since been updated by Dave Musicant
+        and Laura Effinger-Dean.</i></p>
+
+</div>
+
+  
+
+</body></html>

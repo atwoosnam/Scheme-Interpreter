@@ -1,0 +1,11 @@
+(define x 6)
+(define x 7)
+x
+(define abc 8)
+(let ((abc 12) (efg 14)) abc)
+abc
+
+(let ((z 4)) (define z 6))
+z
+
+(let ((z 4)) (define z 6) z)

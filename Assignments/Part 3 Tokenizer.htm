@@ -1,0 +1,313 @@
+
+<!-- saved from url=(0076)https://www.cs.carleton.edu/faculty/dmusicant/cs251s17/interp3tokenizer.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="./Part 3 Tokenizer_files/coursepage.css" title="Blue Haze stylesheet">
+    <link rel="stylesheet" type="text/css" href="./Part 3 Tokenizer_files/color-scheme.css" title="Blue Haze stylesheet">
+  <link rel="shortcut icon" type="image/x-icon" href="https://www.cs.carleton.edu/faculty/dmusicant/cs251s17/favicon.ico">
+
+<title>CS 251: Tokenizer</title>
+<link href="./Part 3 Tokenizer_files/css" rel="stylesheet"></head><span id="warning-container"><i data-reactroot=""></i></span>
+
+<body>
+
+<div id="bodyText">
+
+<h2>CS 251: Tokenizer</h2>
+
+<p>Implement a tokenizer for Scheme, in C. (You must implement the tokenizer
+from scratch -- don't use Lex or any similar tool, even if you happen to know
+what it is and how to use it.)</p>
+
+
+<h3>Getting started</h3>
+<p>After you check out your blank repository, download <a href="https://www.cs.carleton.edu/faculty/dmusicant/cs251s17/tokenizer.zip">this
+zip file</a> and add the .h and .c files to your git project. The files you get
+include:</p>
+<ul>
+<li>linkedlist.h: The same header file from the last assignment</li>
+<li>talloc.h: The same header file from the last assignment</li>
+<li>value.h: Essentially the same header we have been using for a Value, but some new types are added in</li>
+<li>tokenizer.h: The header file for the functions you'll need to write for this
+assignment. You'll also create a number of helper functions for that, but those
+don't need to appear in the header since they will be "private".</li>
+<li>main.c: Short main function that drives the whole program.</li>
+</ul>
+
+<p>At this point, you have a choice regarding how to proceed for linkedlist.c
+and talloc.c. If you want to continue to build your own interpreter that is
+truly yours, you can copy in these files from the last project, and move
+forward. Alternatively, if you would prefer to use my versions instead, you can
+do so. In the <kbd>lib</kbd> directory you'll see <kbd>linkedlist.o</kbd>
+and <kbd>talloc.o</kbd> files. These are compiled binary versions of my
+linkedlist.c and talloc.c. If you would prefer to use one or both of these in
+your project instead of your own, you can replace them in the
+Makefile. Specifically, in the Makefile, on the line starting
+with <kbd>SRCS</kbd>, you can replace <kbd>talloc.c</kbd>
+with <kbd>lib/talloc.o</kbd>, and/or replace <kbd>linkedlist.c</kbd>
+with <kbd>lib/linkedlist.o</kbd>. If you go this route, make sure to copy those .o
+files into a subdirectory called lib.</p>
+
+<p>Note that compiled binaries are operating system specific (sometimes version
+specific). I have compiled these .o files to work with the course virtual
+machine.</p>
+
+<p>Finally: note that while you are welcome to use these binaries that I provide
+if you wish, a very small portion of the grade for the assignment will be
+reserved for those who manage to make this work entirely with their own code. I
+currently have the assignment worth a total of 12 points; half of one point is
+reserved for those who use their own code entirely without using my
+binaries.</p>
+
+<p>To compile your code, issue the command "make" at the command prompt. (This
+  will give an error if you haven't yet created the .c files you need, or have
+  changed the Makefile to refer to the necessary .o files.)</p>
+
+<p>To run your code, first create a file with some Scheme code in it, and give
+it a filename (e.g., <kbd>input.txt</kbd>). Then issue this command at a
+prompt:</p>
+
+<pre style="border-style: solid; border-width: 1px;">./tokenizer &lt; input.txt
+</pre>
+
+<p>Your tokenizer code should read data from "stdin." In that case, the above command will redirect the text in the input.txt file into your program.</p>
+
+<p>To run your code through valgrind, I have provided a shell script to set all the
+appropriate options. You can do it this way:</p>
+
+<pre style="border-style: solid; border-width: 1px;">./valgrind.sh &lt; input.txt
+</pre>
+
+
+<p>One challenge you may find is that when your output gets long, it gets hard
+to read before it scrolls all the way off the top of your terminal
+window. Piping your output through the UNIX <tt>less</tt> program helps. It will
+pause the output at the bottom of the screen, waiting for you press the space
+bar to continue, or <tt>q</tt> if you want to quit. You can do this with out
+without valgrind:</p>
+
+<pre style="border-style: solid; border-width: 1px;">./tokenizer &lt; input.txt | less
+</pre>
+
+
+<pre style="border-style: solid; border-width: 1px;">./valgrind.sh &lt; input.txt | less
+</pre>
+
+Piping the results through less as shown above works, but there's an additional
+problem to solve. The output from your program, as well as from valgrind, comes
+from two different streams: one is known as "standard out," and the other is
+known as "standard error." By default, when you use the vertical bar (which
+means "pipe"), only standard out is piped into <tt>less</tt>. This means that if
+you have a lot of error messages from your program, or info from valgrind (which
+tends to go through standard error), it will still scroll off the screen. To fix
+this, you want to first redirect the standard error stream to the standard
+out stream; then you want to pipe all of that output to <tt>less</tt>. To do so,
+with and without valgrind, you use the following arcane syntax:
+
+
+<pre style="border-style: solid; border-width: 1px;">./tokenizer &lt; input.txt 2&gt;&amp;1 | less
+</pre>
+
+
+<pre style="border-style: solid; border-width: 1px;">./valgrind.sh &lt; input.txt 2&gt;&amp;1 | less
+</pre>
+
+The shell program that we are using (known as <tt>bash</tt> refers to standard
+error as stream number 2, and standard out as stream number 1. The above syntax
+says to redirect stream 2 into stream 1. If you'd like to learn more about all
+of this, I'd encourage you to look at the documentation for bash; type <tt>man
+    bash</tt> at a command prompt.
+
+<h3>Assignment details</h3>
+
+<p>You should create a <kbd>tokenizer.c</kbd> file that implements the functions
+specified in <kbd>tokenizer.h</kbd>. More generally, your tokenizer should read
+Scheme code from standard input and write to standard output a list of tokens
+accompanied by the type of each token. You must include the following token
+types:</p>
+
+<pre>     boolean, integer, float, string, symbol, open, close
+</pre>
+
+<p>(the last two are for <kbd>(</kbd> and <kbd>)</kbd>). The output format
+is, per line, <kbd>token:type</kbd>. You should strip out comments as you
+tokenize, so that anything after a <kbd>;</kbd> on a line is ignored. (You'll
+also have to think about how to handle whitespace -- sometimes it
+matters! sometimes it doesn't!)</p>
+
+<p>For example, here's a sample run of my code:</p>
+
+<pre style="border-style: solid; border-width: 1px;">$ cat token-test.input.1
+(+ x2 ( + ( quote x ) "foo;; still a string" 323) ;; now it's a comment!
+
+$ ./tokenizer &lt; token-test.input.1
+(:open
++:symbol
+x2:symbol
+(:open
++:symbol
+(:open
+quote:symbol
+x:symbol
+):close
+"foo;; still a string":string
+323:integer
+):close
+</pre>
+
+<p>Your tokenizer should handle bad input gracefully; your program should never
+  crash with a segfault, bus error, or the like. If the input code is
+  untokenizable, print an error message. You may print something generic such as
+  "Syntax error: untokenizeable", or you can provide more detailed information
+  in the error message depending on what the problem is. After encountering an
+  error, your program should exit after printing the error - don't read any more
+  input. This is why we wrote the function <kbd>texit</kbd>. Also feel free to
+  print Scheme code around the error to be helpful if you can, though this
+  optional.</p>
+
+<h3>Syntax details</h3>
+
+    <p>Scheme is a complex language. In the interest of sanity, here is a
+      simplified syntax for numbers that I expect your tokenizer to handle
+      (adapted
+      from <a href="http://www.scheme.com/tspl4/grammar.html">here</a>):</p>
+
+<pre>&lt;number&gt;   -&gt;  &lt;sign&gt; &lt;ureal&gt; | &lt;ureal&gt;
+&lt;sign&gt;     -&gt;  + | -
+&lt;ureal&gt;    -&gt;  &lt;uinteger&gt; | &lt;udecimal&gt;
+&lt;uinteger&gt; -&gt;  &lt;digit&gt;<sup>+</sup>
+&lt;udecimal&gt; -&gt;  . &lt;digit&gt;<sup>+</sup> | &lt;digit&gt;<sup>+</sup> . &lt;digit&gt;<sup>*</sup>
+&lt;digit&gt;    -&gt;  0 | 1 | ... | 9
+</pre>
+
+    <p>Note that <sup>*</sup> is shorthand for zero or more
+      repetitions of the symbol, and <sup>+</sup> is shorthand
+      for one or more repetitions of the symbol. Tip: if you want
+      to convert strings to numbers, you can use the
+      functions <kbd>atoi</kbd> and <kbd>atof</kbd> in the standard
+      library.</p>
+
+    <p>Similarly, you should recognize symbols (identifiers) with the
+      following syntax (again adapted
+      from <a href="http://www.scheme.com/tspl2d/grammar.html">here</a>):</p>
+
+<pre>&lt;identifier&gt; -&gt;  &lt;initial&gt; &lt;subsequent&gt;* | + | -
+&lt;initial&gt;    -&gt;  &lt;letter&gt; | ! | $ | % | &amp; | * | / | : | &lt; | = | &gt; | ? | ~ | _ | ^
+&lt;subsequent&gt; -&gt;  &lt;initial&gt; | &lt;digit&gt; | . | + | -
+&lt;letter&gt;     -&gt;  a | b | ... | z | A | B | ... | Z
+&lt;digit&gt;      -&gt;  0 | 1 | ... | 9 
+</pre>
+
+<p>This may be inconsistent with the behavior of Scheme. If you wish to
+instead
+implement the entire Scheme grammar, that can be an optional extension at the end of
+the project.</p>
+
+    <p>Symbols are case-sensitive.</p>
+    
+
+
+<p>You may also find Section 1.1 of <a href="http://www.scheme.com/tspl4/">this
+reference book on Scheme</a> to be helpful. The dialect described may not be
+completely consistent with the above, but it's readable in English. The BNF that
+I have provided above is considered to be the correct specification for this
+assignment.</p>
+
+<p>Don't worry about block and datum comments or vectors, or for that matter any
+wacky syntax, unless you want to push this really far. Start from the basics and
+build up. By the way, if it helps, my code generates no tokens given input like
+"error (an unterminated string)<!--"-->.  Try to match the behavior of the
+PrettyBig dialect in DrRacket whenever you're in doubt.</p>
+
+<p>When testing your code, we will intend to test on reasonable programs that
+follow well-understood and documented Scheme conventions. We may try some corner
+cases that will attempt to see if you have coded carefully, but we do not intend
+to find obscure details of the Scheme language standard to see if you have
+carefully deciphered every bit of it.</p>
+
+<p>Scheme provides many different ways of enclosing lists (parentheses, square
+brackets, etc.) We will only test code that uses parentheses. None of our test
+code will use square brackets. You can write your tokenizer and later parts of
+the project to only work on parentheses. That said, of you wish your project to
+also work on square brackets, it isn't that hard of an extension. If you think
+you want to go that way, you'll need to make sure that you tokenize parentheses
+and brackets differently.</p>
+
+
+
+<h3>Some parting hints</h3>
+
+<p>I suppose it is theoretically possible to code this assignment up so that it
+  produces precisely the right output, but without actually storing the data in
+  a list. Don't do that; perhaps that might be easier to get results on this
+  portion of the project, but it will leave you in a useless position to
+  continue for the next portion.</p>
+
+<p>There are many different ways of reading input files. I found it most useful
+to use the functions <kbd>fgetc</kbd> and occasionally <kbd>ungetc</kbd>. Look those
+up. They're more useful than <kbd>fscanf</kbd>.</p>
+
+<p>The heart of your code will be your <kbd>tokenize</kbd> function, which reads
+the file and returns a list of Values. Here's a rough sketch of what that
+function might look like:</p>
+
+<pre class="boxed">Value *tokenize() {
+    char charRead;
+    Value *list = makeNull();
+    charRead = fgetc(stdin);
+
+    while (charRead != EOF) {
+
+        if (charRead == .....) {
+            ...
+        } else if (charRead == ......) {
+            ...
+        } else {
+            ...
+        }
+        charRead = fgetc(stdin);
+    }
+
+    Value *revList = reverse(list);
+    return revList;
+}
+</pre>
+
+
+
+<h3>What to submit</h3>
+<p>Push all of your code into your git repository. Your submitted files should
+be exactly what you checked out, but also with a file named tokenizer.c. Your
+Makefile may have changed if you modified it to work with my binaries. If you
+did this, add a readme.txt file explaining what you did.</p>
+
+<p>You should also include in your submission a collection of at least 4 pairs
+of test files. (More is better!  The sooner you get your tokenizer totally
+right, the sooner you'll get the rest of your project right!) Each pair of files
+should be named tokenizer-test.input.XX and tokenizer-test.output.XX, where XX
+is a test number. It should be the case that if I run the following command then
+I get no output:</p>
+
+<pre class="boxed">./tokenizer &lt; tokenizer-test.input.XX | diff tokenizer-test.output.XX -
+</pre>
+
+<p>When we test your code for grading purposes, we will use our own set of test
+files which we will run using exactly the same command as described above. Test
+carefully.</p>
+
+<p>Your code should have no memory leaks or memory errors when run on any input
+  (correct or incorrect) using <kbd>valgrind</kbd>. We will be checking this as
+  well during grading.</p>
+
+<p>Remember, you can test your code in <kbd>valgrind</kbd> this way:</p>
+
+<pre class="boxed">./valgrind.sh &lt; tokenizer-test.input.XX
+</pre>
+
+
+<p>Have fun tokenizing!</p>
+
+</div>
+
+
+
+</body></html>

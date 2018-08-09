@@ -1,0 +1,190 @@
+
+<!-- saved from url=(0077)https://www.cs.carleton.edu/faculty/dmusicant/cs251s17/interp1linkedlist.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="./CS 251_ Linked List_files/coursepage.css" title="Blue Haze stylesheet">
+    <link rel="stylesheet" type="text/css" href="./CS 251_ Linked List_files/color-scheme.css" title="Blue Haze stylesheet">
+  <link rel="shortcut icon" type="image/x-icon" href="https://www.cs.carleton.edu/faculty/dmusicant/cs251s17/favicon.ico">
+
+<title>CS 251: Linked List</title>
+<link href="./CS 251_ Linked List_files/css" rel="stylesheet"></head><span id="warning-container"><i data-reactroot=""></i></span>
+
+<body>
+
+  <div id="bodyText">
+<h2>CS 251: Linked List</h2>
+
+<p>For this first part of the interpreter project, you'll create a linked list
+that you'll then use throughout the rest of the project.</p>
+
+<h3>Values and lists</h3>
+
+<p>One of the first questions to arise will be "What is this a linked list of?
+Integers? Strings? More lists?" The catch is that you'll be storing lists 
+created in Scheme, which can contain values of a whole variety of types. You
+might think: "Ah! I'll have a Value class, with subclasses for IntValue,
+StringValue, etc." And that would be totally awesome, if you were implementing
+this list using an OOP (object-oriented programming) language. Oops.</p>
+
+<p>In C, one way to handle this type of typing issue is to use <kbd>union</kbd>
+types. (See our online C reference that I assigned or other online tutorials.)
+These types allow you to have a single datatype that sometimes includes
+an <kbd>int</kbd>, sometimes a <kbd>char *</kbd>, etc.) Every such value should
+also include a tag telling you what kind of data you're storing.</p>
+
+<pre>typedef enum {INT_TYPE,DOUBLE_TYPE,STR_TYPE,...} valueType;
+
+struct Value {
+    valueType type;
+    union {
+        int i;
+        double d;
+        char *s;
+        ...
+    };
+};
+
+typedef struct Value Value;
+</pre>
+
+<p>The names <kbd>INT_TYPE</kbd>, <kbd>DOUBLE_TYPE</kbd>, etc., represent types of
+  Values. The <kbd>Value</kbd> struct includes a field (<kbd>type</kbd>) containing
+  one of these tags, as well as a union of various possible fields. For example,
+  you could create a value containing the integer 5 as follows:</p>
+
+<pre>Value myInt;
+myInt.type = INT_TYPE;
+myInt.i = 5;
+</pre>
+
+    <p>If you have a <kbd>Value</kbd> and want to determine its
+      type, the easiest approach is to use a <kbd>switch</kbd>
+      statement:</p>
+
+<pre>switch (val.type) {
+case INT_TYPE:
+    // do something with val.i
+    break;
+case DOUBLE_TYPE:
+    // do something with val.d
+    break;
+...
+}
+</pre>
+
+<p>You will thus want to make some sort of linked list implementation where the
+nodes contain Values. There are many different ways that one can construct a
+linked list. The most common approach you have likely seen is one that consists
+of nodes, where each node is a struct containing two items: a pointer to a
+value, and a pointer to another node.</p>
+
+<p>Don't do it this way for the assignment. There's a better way that
+will save you much pain later.</p>
+
+<p>Because you will eventually be using your linked list to represent
+Scheme S-expressions, you will have a much easier time if your linked
+list actually resembles a Scheme linked list. Specifically, each node
+should be a "cons cell" with two pointers within, and it should not be
+strictly typed.</p>
+
+<p>Here is an abbreviation of the technique that you will use:</p>
+
+<pre style="border-style: solid; border-width: 1px;">struct Value {
+    valueType type; // type will also have a CONS_TYPE as an option
+    union {
+        int i;
+        double d;
+        /* .... */
+        struct ConsCell {
+            struct Value *car;
+            struct Value *cdr;
+        } c;       
+    };
+};
+
+
+typedef struct Value Value;
+</pre>
+
+<p>The "head" pointer for your linked list, whatever you choose to call it,
+should be of type <kbd>Value*</kbd>. It should be <kbd>NULL</kbd> if the list is
+empty, or point to a <kbd>Value</kbd>. That <kbd>Value</kbd> should be one that
+holds a cons cell. The <kbd>car</kbd> of that cell should point to the first item
+in your linked list; the cdr should point to another <kbd>Value</kbd>. And so
+on. At the end of the linked list, the <kbd>cdr</kbd> of that <kbd>Value</kbd>
+should point to a <kbd>NULL_TYPE Value</kbd>.</p>
+
+<p>And finally: if you insert tokens at the beginning of the list, which is the
+simplest way, your tokens will be represented in backwards order from what you
+typically want. One could handle this efficiently by writing code to add at the
+tail of the linked list instead of the head. Instead, we'll make things simpler
+by writing an additional function to reverse a linked list. Is this less
+efficient?  Yeah. This project is large enough; we won't focus very much on
+efficiency, though you might think about tracking places to make it more
+efficient if you want to improve it at the end.</p>
+
+<p>You can feel free to leverage any linked list code that we may or may not
+have written in class, though bear in mind that it might not fit this
+framework.</p>
+
+<h3>Some specifics</h3>
+<p>After you check out your blank repository ((it has
+your teamname, followed by "linkedlist"), download <a href="https://www.cs.carleton.edu/faculty/dmusicant/cs251s17/linkedlist.zip">this
+zip file</a> and add the contents to your git project. The files you get
+include:</p>
+<ul>
+<li>value.h: this defines the Value structure, described above</li>
+<li>linkedlist.h: this defines all of the functions that you will need to write</li>
+<li>main.c: this is a tester function that makes some nodes, puts them into a linked list, displays them, and cleans up memory afterwards</li>
+</ul>
+
+<p>The missing file here is linkedlist.c, which you'll need to create yourself
+in order to implement everything in linkedlist.h. To compile your code, issue
+the command "make" at the command prompt. This will follow the instructions in
+the Makefile for building your project in order to produce an executable
+called <kbd>linkedlist</kbd>. At first, it won't build at all because your
+linkedlist.c file isn't there. Create the file and for now, create every
+function that you need with no code inside it so that you can get everything to
+build. Once you have done that, you can begin implementing your functions, and
+testing appropriately.</p>
+
+<p>When we test your code for grading purposes, we will use value.h and
+linkedlist.h exactly as provided here, so don't change them. We will also use
+main.c exactly as provided here. Furthermore, we will use a fancier main.c, of
+our own devising, that follows the specifications in linkedlist.h, to see if
+you've carefully tested your linked list. <i>The main.c that I have provided
+very intentionally does not test all possible cases.</i> You should test
+further.</p>
+
+<p>Your code should have no memory leaks or memory errors when run on any input
+  (correct or incorrect) using <kbd>valgrind</kbd>. We will be checking this
+  during grading.</p>
+
+<p>To run your code, issue this command at a prompt:</p>
+
+<pre>./linkedlist
+</pre>
+
+To run your code through valgrind, I have provided a shell script to set all the
+appropriate options. You can do it this way:
+
+<pre>./valgrind.sh ./linkedlist
+</pre>
+
+
+
+<h3>What to submit</h3>
+<p>Push all of your code into your git repository. Your submitted files should
+  be exactly what you checked out, but also with a file named linkedlist.c. If
+  you wish, you can also submit an updated main.c for us to look at with
+  additional testing code that you write; but remember, your code needs to run
+  with the original main.c that we provide. You might perhaps create a
+  different main.c for your own testing purposes, and for your own testing, you
+  can modify the Makefile accordingly. When we grade, we will simply copy out
+  your linkedlist.c file into our own project, and test it.</p>
+
+<p>Good luck, and have fun!</p>
+
+</div>
+
+
+</body></html>

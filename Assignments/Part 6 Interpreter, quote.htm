@@ -1,0 +1,124 @@
+
+<!-- saved from url=(0071)https://www.cs.carleton.edu/faculty/dmusican/cs251s17/interp6quote.html -->
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <link rel="stylesheet" type="text/css" href="./Part 6 Interpreter, quote_files/coursepage.css" title="Blue Haze stylesheet">
+    <link rel="stylesheet" type="text/css" href="./Part 6 Interpreter, quote_files/color-scheme.css" title="Blue Haze stylesheet">
+    <title>CS 251: Interpreter, quote</title>
+  <link href="./Part 6 Interpreter, quote_files/css" rel="stylesheet"></head><span id="warning-container"><i data-reactroot=""></i></span>
+
+  <body>
+
+    <div id="bodyText">
+
+    <h2>CS 251: Interpreter, quote</h2>
+
+    <p>This portion of the project is a relatively small enhancement of the
+    previous portion, where you add functionality for the special
+    form <kbd>quote</kbd>. You should build this assignment as an extension of the
+    work that you did for the previous one.</p>
+
+   <h3>Functionality</h3>
+
+
+   <p>For this phase of the project, you must additionally support the correct
+      evaluation of the following Scheme expression:</p>
+
+      <p><kbd>(quote expr)</kbd></p>
+
+      <p>This is equivalent to <kbd>'expr</kbd>, but you only need to be able to
+        handle the version with <kbd>quote</kbd>. Feel free to add
+        the <kbd>'expr</kbd> as an optional extra feature if you wish. If you go
+        in this optional direction, you will likely find that this is easier to
+        do by first going back and modifying the parser.</p>
+
+
+<h3>Expected output for your interpreter</h3>
+<pre>$ cat test1
+(quote a)
+(quote (a b c))
+(quote (a b (quote (c d e))))
+
+$ ./interpreter &lt; test1
+a
+(a b c)
+(a b (quote (c d e)))
+</pre>
+
+<h3>Don't annotate the parse tree</h3>
+
+<p>Do <i>not</i> implement this by trying to somehow wrap up the quoted
+expression in some sort of enclosure indicating that it is quoted. For example,
+don't do this by creating a <kbd>QUOTE_TYPE</kbd> for a <kbd>Value</kbd> or some
+such. It might help you get this part of the assignment to work, but you'll get
+into hot water later. This reflects a common and interesting point of
+confusion: <kbd>quote</kbd> does not tell the interpreter to <i>do</i> something
+to its arguments; rather, it tells the interpreter to <i>not do</i>
+something.</p>
+
+<p>If you are feeling a strong urge to add something to the parse tree
+indicating that something is quoted, don't do it. If you are experiencing such
+compulsions because your tree is not printing properly, past experience has been
+that the problem is likely in your code for <i>printing</i> your parse tree, not
+structuring it in the first place.</p>
+
+    <h3>Memory errors</h3>
+
+    <p>Your code should have no memory leaks or memory errors when run on any
+      input (correct or incorrect) using <kbd>valgrind</kbd>. We will be checking
+      this during grading.</p>
+
+
+<h3>What to submit</h3>
+    <p>Submit via git as usual, and tag your submission
+    as <kbd>quote</kbd>. If you need to resubmit, create another tag with a
+    dot extension, such as <kbd>quote.1</kbd>, <kbd>quote.2</kbd>,
+    and so on. Make sure that you both push your tags <i>and</i> your code
+    itself, as in:</p>
+
+    <pre>      git commit -am "We are done!"
+      git push
+      git tag quote
+      git push --tags
+    </pre>
+
+
+
+
+<p>Add at least two more tests to your test files that test the functionality
+of <kbd>quote</kbd>. Indicate in a readme.txt file which tests are designed to be
+testing this assignment in particular. Each pair of files should be named
+interpreter-test.input.XX and interpreter-test.output.XX, where XX is a test
+number. It should be the case that if I run the following command then I get no
+output:</p>
+
+<pre class="boxed">./interpreter &lt; interpreter-test.input.XX | diff interpreter-test.output.XX -
+</pre>
+
+<p>When we test your code for grading purposes, we will use our own set of test
+files which we will run using exactly the same command as described above. Test
+carefully.</p>
+
+<p>Your code should have no memory leaks or memory errors when run on any input
+  (correct or incorrect) using <kbd>valgrind</kbd>. We will be checking this as
+  well during grading.</p>
+
+<p>Remember, you can test your code in <kbd>valgrind</kbd> this way:</p>
+
+<pre class="boxed">./valgrind.sh  &lt; interpreter-test.input.XX
+</pre>
+
+
+<p>Have fun interpreting!</p>
+
+
+    <hr>
+
+    <p><i>This assignment was originally created by David
+        Liben-Nowell and has since been updated by Dave Musicant
+        and Laura Effinger-Dean.</i></p>
+</div>
+
+  
+
+
+</body></html>
